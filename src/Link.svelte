@@ -7,7 +7,18 @@
   export let to = "#";
   export let replace = false;
   export let state = {};
+  export let className = null;
   export let getProps = () => ({});
+
+  const buildCoreProps = () => {
+    var props = {};
+
+    if (className) {
+      props.class = className;
+    }
+
+    return props;
+  };
 
   const { base } = getContext(ROUTER);
   const location = getContext(LOCATION);
@@ -18,12 +29,14 @@
   $: isPartiallyCurrent = startsWith($location.pathname, href);
   $: isCurrent = href === $location.pathname;
   $: ariaCurrent = isCurrent ? "page" : undefined;
-  $: props = getProps({
+  $: corePropsValues = buildCoreProps();
+  $: getPropsValues = getProps({
     location: $location,
     href,
     isPartiallyCurrent,
     isCurrent
   });
+  $: props = Object.assign(corePropsValues, getPropsValues);
 
   function onClick(event) {
     dispatch("click", event);
