@@ -1,5 +1,14 @@
 [![npm][npm]][npm-url]
 
+# Note
+This is a fork of the [svelte-routing](https://github.com/EmilTholin/svelte-routing) library by [Emil Tholin](https://twitter.com/EmilTholin). It contains the following changes:
+
+* **Link.svelte** - `className` prop, before you could pass a `getProps` prop and pass this prop through that but I felt like it was too much overhead to just pass a class. There is a closed issue with some discussion [here](https://github.com/EmilTholin/svelte-routing/issues/42) and it was described as by design. I decided to add this to my fork to make it easier to pass this prop. If you pass a `className` and also return `class` from `getProps`, the `getProps` value will win. The code for this logic can be seen [here](https://github.com/erzr/svelte-routing/blob/master/src/Link.svelte). 
+* [path-to-regexp](https://github.com/pillarjs/path-to-regexp) - I've been trying to find a Svelte router that would allow me to use regular expressions in my `Route` paths. I've added this dependency to the fork and now use path-to-regexp on the paths that are passed in the `path` prop on the `Route` component. Doing this will allow you to pass in more complex routes such as `/:lang([a-z]{2}-[A-Z]{2})/:restOfRoute*`. It might make sense to remove this dependency in the future and just allow for a `regex` prop to test against instead so we can let people use whatever they want.
+* Removed route ranking. I loved the code for this but I just want to be able to manage how routes are ordered myself and not have them shuffled by a score calculation. Might add this back in the future and just make disabling it optional.
+
+Overall, these changes are just personal preference and might not work for your needs. I have not tested all scenarios and my changes might have broken some use cases that this library was originally intended for.
+
 # Svelte Routing
 
 A declarative Svelte routing library with SSR support.
