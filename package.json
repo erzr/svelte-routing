@@ -9,5 +9,8 @@
   "repository": "EmilTholin/svelte-routing",
   "peerDependencies": {
     "svelte": "3.x"
+  },
+  "dependencies": {
+    "path-to-regexp": "^3.0.0"
   }
 }

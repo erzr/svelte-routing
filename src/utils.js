@@ -4,14 +4,6 @@
  * https://github.com/reach/router/blob/master/LICENSE
  * */
 
-const paramRe = /^:(.+)/;
-
-const SEGMENT_POINTS = 4;
-const STATIC_POINTS = 3;
-const DYNAMIC_POINTS = 2;
-const SPLAT_PENALTY = 1;
-const ROOT_POINTS = 1;
-
 /**
  * Check if `string` starts with `search`
  * @param {string} string
@@ -20,33 +12,6 @@ const ROOT_POINTS = 1;
  */
 export function startsWith(string, search) {
   return string.substr(0, search.length) === search;
-}
-
-/**
- * Check if `segment` is a root segment
- * @param {string} segment
- * @return {boolean}
- */
-function isRootSegment(segment) {
-  return segment === "";
-}
-
-/**
- * Check if `segment` is a dynamic segment
- * @param {string} segment
- * @return {boolean}
- */
-function isDynamic(segment) {
-  return paramRe.test(segment);
-}
-
-/**
- * Check if `segment` is a splat
- * @param {string} segment
- * @return {boolean}
- */
-function isSplat(segment) {
-  return segment[0] === "*";
 }
 
 /**
@@ -70,50 +35,6 @@ function segmentize(uri) {
  */
 function stripSlashes(str) {
   return str.replace(/(^\/+|\/+$)/g, "");
-}
-
-/**
- * Score a route depending on how its individual segments look
- * @param {object} route
- * @param {number} index
- * @return {object}
- */
-function rankRoute(route, index) {
-  const score = route.default
-    ? 0
-    : segmentize(route.path).reduce((score, segment) => {
-        score += SEGMENT_POINTS;
-
-        if (isRootSegment(segment)) {
-          score += ROOT_POINTS;
-        } else if (isDynamic(segment)) {
-          score += DYNAMIC_POINTS;
-        } else if (isSplat(segment)) {
-          score -= SEGMENT_POINTS + SPLAT_PENALTY;
-        } else {
-          score += STATIC_POINTS;
-        }
-
-        return score;
-      }, 0);
-
-  return { route, score, index };
-}
-
-/**
- * Give a score to all routes and sort them on that
- * @param {object[]} routes
- * @return {object[]}
- */
-function rankRoutes(routes) {
-  return (
-    routes
-      .map(rankRoute)
-      // If two routes have the exact same score, we go by index instead
-      .sort((a, b) =>
-        a.score < b.score ? 1 : a.score > b.score ? -1 : a.index - b.index
-      )
-  );
 }
 
 /**
@@ -142,73 +63,37 @@ function pick(routes, uri) {
   let match;
   let default_;
 
-  const [uriPathname] = uri.split("?");
-  const uriSegments = segmentize(uriPathname);
-  const isRootUri = uriSegments[0] === "";
-  const ranked = rankRoutes(routes);
-
-  for (let i = 0, l = ranked.length; i < l; i++) {
-    const route = ranked[i].route;
+  for (let i = 0, l = routes.length; i < l; i++) {
+    const route = routes[i];
+    const params = {};
     let missed = false;
 
     if (route.default) {
       default_ = {
         route,
-        params: {},
+        params,
         uri
       };
       continue;
     }
 
-    const routeSegments = segmentize(route.path);
-    const params = {};
-    const max = Math.max(uriSegments.length, routeSegments.length);
-    let index = 0;
+    const regex = route.regex;
 
-    for (; index < max; index++) {
-      const routeSegment = routeSegments[index];
-      const uriSegment = uriSegments[index];
+    const regexTest = regex.exec(uri);
 
-      if (routeSegment !== undefined && isSplat(routeSegment)) {
-        // Hit a splat, just grab the rest, and return a match
-        // uri:   /files/documents/work
-        // route: /files/* or /files/*splatname
-        const splatName = routeSegment === "*" ? "*" : routeSegment.slice(1);
-
-        params[splatName] = uriSegments
-          .slice(index)
-          .map(decodeURIComponent)
-          .join("/");
-        break;
-      }
-
-      if (uriSegment === undefined) {
-        // URI is shorter than the route, no match
-        // uri:   /users
-        // route: /users/:userId
-        missed = true;
-        break;
-      }
-
-      let dynamicMatch = paramRe.exec(routeSegment);
-
-      if (dynamicMatch && !isRootUri) {
-        const value = decodeURIComponent(uriSegment);
-        params[dynamicMatch[1]] = value;
-      } else if (routeSegment !== uriSegment) {
-        // Current segments don't match, not dynamic, not splat, so no match
-        // uri:   /users/123/settings
-        // route: /users/:id/profile
-        missed = true;
-        break;
-      }
+    if (regexTest) {
+      route.keys.forEach((key, index) => {
+        params[key.name] = regexTest[index + 1];
+      });
+    } else {
+      missed = true;
     }
 
     if (!missed) {
       match = {
         route,
         params,
-        uri: "/" + uriSegments.slice(0, index).join("/")
+        uri: uri
       };
       break;
     }

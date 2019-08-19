@@ -1,5 +1,6 @@
 <script>
   import { getContext, onDestroy } from "svelte";
+  import pathToRegexp from "path-to-regexp";
   import { ROUTER } from "./contexts.js";
 
   export let path = "";
@@ -7,12 +8,19 @@
 
   const { registerRoute, unregisterRoute, activeRoute } = getContext(ROUTER);
 
+  const keys = [];
   const route = {
     path,
     // If no path prop is given, this Route will act as the default Route
     // that is rendered if no other Route in the Router is a match.
-    default: path === ""
+    default: path === "",
+    regex: pathToRegexp(path, keys)
   };
+
+  if (keys) {
+    route.keys = keys;
+  }
+
   let routeParams = {};
   let routeProps = {};
 
